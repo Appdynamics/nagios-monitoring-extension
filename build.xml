@@ -1,7 +1,7 @@
 <project default="build">
     <property name="build.dir" value="dist" />
     <property name="conf.dir" value="conf" />
-    <property name="project.name" value="nagios"/>
+    <property name="project.name" value="NagiosMonitor"/>
     <property name="lib.dir" value="lib"/>
     <path id="cp">
         <fileset dir="${lib.dir}" includes="**/*.jar"/>
@@ -9,17 +9,25 @@
     <target name="build">
         <mkdir dir="${build.dir}/classes"/>
         <javac destdir="${build.dir}/classes" srcdir="src/main/java" classpathref="cp" debug="on"/>
-        <jar destfile="${build.dir}/${project.name}.jar">
+        <mkdir dir="${build.dir}/NagiosMonitor"/>
+        <mkdir dir="${build.dir}/NagiosMonitor/lib"/>
+        <jar destfile="${build.dir}/NagiosMonitor/${project.name}.jar">
             <fileset dir="${build.dir}/classes"/>
         </jar>
-        <copy todir="${build.dir}/lib/">
-            <fileset dir="${lib.dir}" includes="dom4j-2.0.0-ALPHA-2.jar"/>
+        <copy todir="${build.dir}/NagiosMonitor/lib/">
+            <fileset dir="${lib.dir}/dom4j" includes="dom4j-2.0.0-ALPHA-2.jar"/>
         </copy>
-        <copy todir="${build.dir}/">
+        <copy todir="${build.dir}/NagiosMonitor">
             <fileset dir="${conf.dir}" includes="monitor.xml"/>
         </copy>
         <delete dir="${build.dir}/classes"/>
-	<mkdir dir="${build.dir}/scripts" />
+	<mkdir dir="${build.dir}/NagiosMonitor/scripts" />
+    </target>
+    <target name="package" depends="build">
+        <zip destfile="${build.dir}/NagiosMonitor.zip">
+            <zipfileset dir="${build.dir}/NagiosMonitor" filemode="755" prefix="NagiosMonitor/"/>
+        </zip>
+        <delete dir="${build.dir}/NagiosMonitor"/>
     </target>
     <target name="clean">
         <delete dir="${build.dir}"/>
