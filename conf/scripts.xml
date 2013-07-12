@@ -1,0 +1,11 @@
+<nagios-monitor>
+	<script>
+		<name>Script 1</name>
+		<path>/path/to/script</path>
+		<period>5</period>
+	</script>
+	<script run-all="true">
+		<path>/Users/nnarayanan/repo/sdk/monitors/java/nagios/dist/scripts</path>
+		<period>5</period>
+	</script>
+</nagios-monitor>
