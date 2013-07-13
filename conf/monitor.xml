@@ -10,7 +10,7 @@
                 <description>Nagios Monitor Task</description>
                 <type>java</type>
                 <java-task>
-                        <classpath>nagios.jar;lib/dom4j-2.0.0-ALPHA-2.jar</classpath>
+                        <classpath>NagiosMonitor.jar;lib/dom4j-2.0.0-ALPHA-2.jar</classpath>
                         <impl-class>com.appdynamics.monitors.nagios.NagiosMonitor</impl-class>
                 </java-task>
                 <task-arguments>
