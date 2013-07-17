@@ -4,8 +4,7 @@
 
 Nagios is an open source computer system, network, and infrastructure monitoring software application.
 
-The Nagios monitoring extension executes various Nagios scripts at user configurable
-intervals and display their results in the AppDynamics Metric Browser.
+The Nagios monitoring extension executes various Nagios scripts at user configurable intervals and display their results in the AppDynamics Metric Browser.
 
 
 ##Installation
@@ -30,12 +29,12 @@ The Nagios scripts should return the following codes:
 
 **Note**: The Nagios scripts must have read access by the Machine Agent for the monitoring extension to execute them.
 
-##Files and Folders Included
+##Directory Structure
 
 <table><tbody>
 <tr>
-<th align = 'left'> Directory/File </th>
-<th align = 'left'> Description </th>
+<th align="left"> Directory/File </th>
+<th align="left"> Description </th>
 </tr>
 <tr>
 <td class='confluenceTd'> conf </td>
@@ -128,11 +127,15 @@ The Nagios scripts should return the following codes:
 
 
 
+
 ##Contributing
 
-Always feel free to fork and contribute any changes directly via GitHub.
+Always feel free to fork and contribute any changes directly via [GitHub](https://github.com/Appdynamics/nagios-monitoring-extension).
 
+##Community
+
+Find out more in the [AppSphere](http://appsphere.appdynamics.com/t5/Extensions/Nagios-Monitoring-Extension/idi-p/833) community.
 
 ##Support
 
-For any support questions, please contact ace@appdynamics.com.
+For any questions or feature request, please contact [AppDynamics Center of Excellence](mailto://ace-request@appdynamics.com).
