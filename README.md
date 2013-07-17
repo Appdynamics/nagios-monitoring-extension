@@ -114,7 +114,7 @@ The Nagios scripts should return the following codes:
 ##Metric Browser
 
 
-![](images/nagios.png)
+![](http://appsphere.appdynamics.com/t5/image/serverpage/image-id/59i17B26F44069944E8/image-size/original?v=mpbl-1&px=-1)
 
 
 
