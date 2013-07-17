@@ -1,4 +1,4 @@
-# AppDynamics Nagios Monitoring Extension
+# AppDynamics Nagios - Monitoring Extension
 
 ##Use Case
 
@@ -30,7 +30,7 @@ The Nagios scripts should return the following codes:
 
 **Note**: The Nagios scripts must have read access by the Machine Agent for the monitoring extension to execute them.
 
-##Files/Folders Included:
+##Files and Folders Included
 
 <table><tbody>
 <tr>
