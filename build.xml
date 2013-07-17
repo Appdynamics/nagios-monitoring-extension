@@ -24,7 +24,6 @@
             <fileset dir="${conf.dir}" includes="scripts.xml"/>
         </copy>
         <delete dir="${build.dir}/classes"/>
-	<mkdir dir="${build.dir}/NagiosMonitor/scripts" />
     </target>
     <target name="package" depends="build">
         <zip destfile="${build.dir}/NagiosMonitor.zip">
