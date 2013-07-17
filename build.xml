@@ -20,6 +20,9 @@
         <copy todir="${build.dir}/NagiosMonitor">
             <fileset dir="${conf.dir}" includes="monitor.xml"/>
         </copy>
+        <copy todir="${build.dir}/NagiosMonitor">
+            <fileset dir="${conf.dir}" includes="scripts.xml"/>
+        </copy>
         <delete dir="${build.dir}/classes"/>
 	<mkdir dir="${build.dir}/NagiosMonitor/scripts" />
     </target>
