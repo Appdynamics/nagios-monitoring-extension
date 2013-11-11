@@ -15,6 +15,10 @@
                 </java-task>
                 <task-arguments>
                         <argument name="project_path" is-required="true" default-value="/path/to/nagios/project"/>
+                        <!-- Controls how many worker threads would be spawned to execute the scripts -->
+                        <argument name="worker_count" is-required="false" default-value="5"/>
+                        <!-- Controls how much time (in minutes) would be allowed before force shutdown is called. -->
+                        <argument name="max_wait_time" is-required="false" default-value="5"/>
                 </task-arguments>
         </monitor-run-task>
 </monitor>

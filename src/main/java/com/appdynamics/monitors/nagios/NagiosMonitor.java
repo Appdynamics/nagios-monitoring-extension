@@ -1,12 +1,17 @@
+
 package com.appdynamics.monitors.nagios;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 import org.dom4j.Document;
@@ -21,212 +26,267 @@ import com.singularity.ee.agent.systemagent.api.TaskExecutionContext;
 import com.singularity.ee.agent.systemagent.api.TaskOutput;
 import com.singularity.ee.agent.systemagent.api.exception.TaskExecutionException;
 
+/**
+ * @author
+ */
 public class NagiosMonitor extends AManagedMonitor
 {
-	private String project_folder;
-	private static ArrayList<NagiosScript> scripts;
-	public static Logger logger = Logger.getLogger(NagiosMonitor.class);
-	private enum STATES {
-		OK,
-		WARNING,
-		CRITICAL,
-		UNKNOWN;
+    private static final String METRICS_PREFIX = "Custom Metrics|Monitoring|Nagios|Status|"; // Controller Path.
+    private static final Logger LOG = Logger.getLogger(NagiosMonitor.class); // The Logger.
+    private static final int WORKER_COUNT = 10; // Max worker count can be altered via configuration.
+    private static final int MAX_WAIT_TIME = 5; // Max wait time in minutes for the workers to go down.
 
-		@Override
-		public String toString() {
-			return String.valueOf(this.ordinal());
-		}
-	}
+    private String projectFolder; // The prokect folder.
+    private Integer workerCount = WORKER_COUNT;
+    private Integer maxWaitTime = MAX_WAIT_TIME;
 
-	public static final HashMap<String, String> results = new HashMap<String, String>();
-	private static int duration = 0;
+    private Collection<NagiosScript> scripts; // Collection of tasks (implementing java.lang.Runnable)
+    private final HashMap<String, String> results = new HashMap<String, String>(); // The results map.
 
-	public void print() {
-		logger.error("PRINTING METRICS");
-		for (NagiosScript script : scripts) {
-			if (!script.run_all) {
-				logger.error("NAME: " + script.name + " VALUE: " + results.get(script.id));
-				printMetric(script.name,
-					(results.get(script.id) == null) ? STATES.UNKNOWN : results.get(script.id),
-					MetricWriter.METRIC_AGGREGATION_TYPE_OBSERVATION,
-					MetricWriter.METRIC_TIME_ROLLUP_TYPE_CURRENT,
-					MetricWriter.METRIC_CLUSTER_ROLLUP_TYPE_COLLECTIVE
-				);
-			}
-		}
-	}
+    /**
+     * This represents the various valid NAGIOS STATUS.
+     * 
+     * @author 
+     */
+    private enum STATES
+    {
+        OK, WARNING, CRITICAL, UNKNOWN; // States
 
-	public void parseXML(String xml) throws DocumentException {
-		scripts = new ArrayList<NagiosScript>();
-		SAXReader reader = new SAXReader();
-		Document document = reader.read(xml);
-		Element root = document.getRootElement();
-		for (Iterator<Element> i = root.elementIterator(); i.hasNext();) {
-			Element element = (Element)i.next();
-			if (element.getName().equals("script")) {
-				Iterator<Element> elementIterator = element.elementIterator();
-				NagiosScript script = new NagiosScript();
-				if (element.attributeCount() > 0 && element.attribute(0).getName().equals("run-all")) {
-					script.run_all = true;
-					script.force_stop = false;
-				}
-				for (Iterator<Element> j = elementIterator; j.hasNext();) {
-					element = (Element)j.next();
-					if (element.getName().equals("name")) {
-						script.name = element.getText();
-					}
-					else if (element.getName().equals("path")) {
-						script.path = element.getText();
-					}
-					else if (element.getName().equals("period")) {
-						script.period = Integer.parseInt(element.getText());
-					}
-					else if (element.getName().equals("script-arguments")) {
-						script.arguments = element.getText();
-					}
-				}
-				script.id = UUID.randomUUID().toString();
-				scripts.add(script);
-			}
-		}
-	}
+        /**
+         * @see java.lang.Enum#toString()
+         */
+        @Override
+        public String toString()
+        {
+            return String.valueOf(this.ordinal());
+        }
+    }
 
-	public void iterateFolder(File folder, Integer period) throws IOException {
-		for (File file : folder.listFiles()) {
-			if (file.isDirectory()) {
-				iterateFolder(file, period);
-			} 
-			else if (!file.isHidden() && !file.getName().startsWith(".") && file.getName() != null) {
-				NagiosScript script = new NagiosScript();
-				script.id = UUID.randomUUID().toString();
-				script.name = file.getName();
-				script.path = file.getAbsolutePath();
-				script.period = period;
-				scripts.add(script);
-			}
-		}
-	}
+    /**
+     * 
+     */
+    public void print()
+    {
+        LOG.info("Printing metrics.");
 
-	public void executeScript(final NagiosScript script, final int i) throws IOException {
+        // Publish status to the controller instance.
+        for (NagiosScript script : scripts) {
+            if (!script.isRunAll()) {
+                LOG.error("NAME: " + script.getName() + " VALUE: " + results.get(script.getId()));
+                printMetric(
+                    script.getName(),
+                    (results.get(script.getId()) == null) ? STATES.UNKNOWN : results.get(script.getId()),
+                    MetricWriter.METRIC_AGGREGATION_TYPE_OBSERVATION, MetricWriter.METRIC_TIME_ROLLUP_TYPE_CURRENT,
+                    MetricWriter.METRIC_CLUSTER_ROLLUP_TYPE_COLLECTIVE);
+            }
+        }
+    }
 
-		logger.error("---SCRIPT PARAMS---");
-		logger.error(script.arguments);
-		logger.error(script.force_stop);
-		logger.error(script.id);
-		logger.error(script.name);
-		logger.error(script.path);
-		logger.error(script.period);
-		logger.error(script.period_passed);
-		logger.error(script.run_all);
-		logger.error(script.started);
-		logger.error(script.thread);
-		logger.error("-------------------");
-		
-		if (script.run_all) {
-			iterateFolder(new File(script.path), script.period);
-			scripts.remove(i);
-			return;
-		}
+    /**
+     * @param xml
+     * @throws DocumentException
+     */
+    public void parseXML(final String xml) throws DocumentException
+    {
+        scripts = new LinkedList<NagiosScript>();
 
-		if (scripts.get(i).thread == null) 
-		{
-			scripts.get(i).thread = new Thread(new Runnable() 
-			{
-				@Override
-				public void run() {
-					try {
-						logger.error("Running thread for script: " + script.name);
-						Process p = Runtime.getRuntime().exec(script.path + " " + script.arguments);
-	
-						int exitCode = p.waitFor();
-						logger.error("EXIT CODE: " + exitCode + " for " + script.name);
-						results.put(script.id, String.valueOf(exitCode));
-						Thread.sleep(script.period * 1000);
-					}
-					catch (IOException ex) {
-						logger.error(ex);
-							System.err.println(ex);
-					} catch (InterruptedException e) {
-						logger.error(e);
-						System.out.println("Interrupt Received");
-					} finally {
-						scripts.get(i).period_passed = 0;
-						scripts.get(i).started = false;
-						logger.error("Thread for script: " + script.name + " finished");
-					}
-				}
-			});
-		}
-		scripts.get(i).started = true;
-		scripts.get(i).thread.start();
-	}
+        final SAXReader reader = new SAXReader();
+        final Document document = reader.read(xml);
+        final Element root = document.getRootElement();
 
-	/**
-	 * Returns the metric to the AppDynamics Controller.
-	 * @param 	metricName		Name of the Metric
-	 * @param 	metricValue		Value of the Metric
-	 * @param 	aggregation		Average OR Observation OR Sum
-	 * @param 	timeRollup		Average OR Current OR Sum
-	 * @param 	cluster			Collective OR Individual
-	 */
-	public void printMetric(String metricName, Object metricValue, String aggregation, String timeRollup, String cluster)
-	{
-		MetricWriter metricWriter = getMetricWriter(getMetricPrefix() + metricName, 
-			aggregation,
-			timeRollup,
-			cluster
-		);
+        for (Iterator<Element> i = root.elementIterator(); i.hasNext();) {
+            Element element = (Element) i.next();
 
-		metricWriter.printMetric(String.valueOf(metricValue));
-	}
+            if (element.getName().equals("script")) {
+                Iterator<Element> elementIterator = element.elementIterator();
 
-	protected String getMetricPrefix()
-	{
-		return "Custom Metrics|Monitoring|Nagios|Status|";
-	}
+                if (element.attributeCount() > 0 && element.attribute(0).getName().equals("run-all")) {
+                    String path = null;
+                    int period = -1;
+                    for (Iterator<Element> j = elementIterator; j.hasNext();) {
+                        element = (Element) j.next();
+                        if (element.getName().equals("path")) {
+                            path = element.getText();
+                        }
+                        else if (element.getName().equals("period")) {
+                            period = Integer.parseInt(element.getText());
+                        }
+                    }
 
-	@Override
-	public TaskOutput execute(Map<String, String> args,
-			TaskExecutionContext arg1) throws TaskExecutionException {
-		project_folder = args.get("project_path");
-		logger.error("BEGIN Execution");
-		try {
-			parseXML(project_folder + "/conf/scripts.xml");
-		} catch (DocumentException e) {
-			logger.error("Failed to parse XML." + e.toString());
-		}
-		while (true) 
-		{
-			try 
-			{
-				if (duration == 60) {
-					print();
-					duration = 0;
-				}
-				for (int i = 0; i < scripts.size(); i++) {
-					if (!scripts.get(i).started) {
-						logger.error("Executing script: " + scripts.get(i).name);
-						executeScript(scripts.get(i), i);
-					} 
-					else if (scripts.get(i).started && scripts.get(i).period_passed > 10 && scripts.get(i).force_stop) {
-						logger.error("Script running too long. Terminating: " + scripts.get(i).name);
-						scripts.get(i).thread.interrupt();
-						scripts.get(i).period_passed = 0;
-					}
-					scripts.get(i).period_passed++;
-				}
-				logger.error("Duration: " + duration);
-				Thread.sleep(1000);
-				duration++;
-			}
-			catch (IOException e) {
-				logger.error(e);
-				System.err.println(e);
-			}
-			catch (InterruptedException e) {
-				logger.error(e);
-				System.err.println(e);
-			}
-		}
-	}
+                    try {
+                        iterateFolder(new File(path), period);
+                    }
+                    catch (IOException e) {
+                        LOG.error("Failed to gather scripts from the path given: " + path, e);
+                    }
+                }
+                else {
+                    final NagiosScript script = new NagiosScript();
+                    for (Iterator<Element> j = elementIterator; j.hasNext();) {
+                        element = (Element) j.next();
+                        if (element.getName().equals("name")) {
+                            script.setName(element.getText());
+                        }
+                        else if (element.getName().equals("path")) {
+                            script.setPath(element.getText());
+                        }
+                        else if (element.getName().equals("period")) {
+                            script.setPeriod(Integer.parseInt(element.getText()));
+                        }
+                        else if (element.getName().equals("script-arguments")) {
+                            script.setArguments(element.getText());
+                        }
+                    }
+
+                    script.setId(UUID.randomUUID().toString());
+                    scripts.add(script);
+                }
+            }
+        }
+    }
+
+    /**
+     * @param folder
+     * @param period
+     * @throws IOException
+     */
+    public void iterateFolder(final File folder, final Integer period) throws IOException
+    {
+        for (final File file : folder.listFiles()) {
+            if (file.isDirectory()) {
+                iterateFolder(file, period);
+            }
+            else if (!file.isHidden() && !file.getName().startsWith(".") && file.getName() != null) {
+                final NagiosScript script = new NagiosScript();
+                script.setId(UUID.randomUUID().toString());
+                script.setName(file.getName());
+                script.setPath(file.getAbsolutePath());
+                script.setPeriod(period);
+                scripts.add(script);
+            }
+        }
+    }
+
+    /**
+     * Returns the metric to the AppDynamics Controller.
+     * @param 	metricName		Name of the Metric
+     * @param 	metricValue		Value of the Metric
+     * @param 	aggregation		Average OR Observation OR Sum
+     * @param 	timeRollup		Average OR Current OR Sum
+     * @param 	cluster			Collective OR Individual
+     */
+    public void printMetric(
+        final String metricName,
+        final Object metricValue,
+        final String aggregation,
+        final String timeRollup,
+        final String cluster)
+    {
+        final MetricWriter metricWriter = getMetricWriter(
+            getMetricPrefix() + metricName, aggregation, timeRollup, cluster);
+        metricWriter.printMetric(String.valueOf(metricValue));
+    }
+
+    /**
+     * @return
+     */
+    protected String getMetricPrefix()
+    {
+        return METRICS_PREFIX;
+    }
+
+    /**
+     * @see com.singularity.ee.agent.systemagent.api.ITask#execute(java.util.Map, com.singularity.ee.agent.systemagent.api.TaskExecutionContext)
+     */
+    public TaskOutput execute(final Map<String, String> args, final TaskExecutionContext context)
+        throws TaskExecutionException
+    {
+        parseArgs(args);
+
+        // Parse the scripts.xml.
+        try {
+            parseXML(projectFolder + "/conf/scripts.xml");
+        }
+        catch (DocumentException e) {
+            LOG.error("Failed to parse XML." + e.toString());
+        }
+
+        for (;;) {
+            // Initiate the pool with the pre defined work count.
+            final ExecutorService executor = Executors.newFixedThreadPool(this.workerCount);
+
+            // Add the tasks to execute them in some time in future.
+            for (final NagiosScript script : scripts) {
+                executor.execute(script);
+            }
+
+            // Ask the executor to gracefully shutdown after every thing is finished.
+            executor.shutdown();
+
+            // Now see that this pool shutsdown and does not go to eternity.
+            try {
+                executor.awaitTermination(this.maxWaitTime * 60, TimeUnit.SECONDS);
+            }
+            catch (InterruptedException e) {
+                LOG.error("Failed to shutdown the executor in max wait time(in minutes):" + MAX_WAIT_TIME, e);
+            }
+
+            // After every thing has been done gracefully,
+            // check the status of nagios script execution and send it to controller.
+            // Gather status.
+            for (final NagiosScript script : scripts) {
+                this.results.put(script.getId(), String.valueOf(script.getExitCode()));
+
+                if (script.getExitCode() > 2) {
+                    LOG.warn("Unknown exit code for script: " + script.getName());
+                }
+            }
+
+            // Send them across the controller.
+            print();
+
+            LOG.info("Scripts executed.");
+        }
+    }
+
+    /**
+     * @param args
+     */
+    public void parseArgs(final Map<String, String> args)
+    {
+        // Get the path.
+        this.projectFolder = args.get("project_path");
+
+        // worker_count, max_wait_time
+        final String strMaxWaitTime = args.get("max_wait_time");
+        final String strWorkerCount = args.get("worker_count");
+
+        if (isNotEmpty(strMaxWaitTime)) {
+            try {
+                this.maxWaitTime = Integer.parseInt(strMaxWaitTime);
+            }
+            catch (IllegalArgumentException e) {
+                // Ignore.
+            }
+        }
+
+        if (isNotEmpty(strWorkerCount)) {
+            try {
+                this.workerCount = Integer.parseInt(strWorkerCount);
+            }
+            catch (IllegalArgumentException e) {
+                // Ignore.
+            }
+        }
+    }
+
+    /**
+     * @param input
+     * @return
+     */
+    public static boolean isNotEmpty(final String input)
+    {
+        return null != input && !"".equals(input.trim());
+    }
+
 }
