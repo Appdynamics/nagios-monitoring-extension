@@ -12,8 +12,8 @@ This extension works only with the Java agent.
 1. Run 'ant package' from the pingdom-monitoring-extension directory
 2. Download the file NagiosMonitor.zip found in the 'dist' directory into \<machineagent install dir\>/monitors/
 3. Unzip the downloaded file and cd into NagiosMonitor
-4. Open the monitor.xml file and edit the project path to the NagiosMonitor/scripts directory that was just created
-5. Open the scripts.xml file and add the appropriate scripts such as those in [the scripts.xml example](https://github.com/Appdynamics/nagios-monitoring-extension/blob/master/README.md#scriptsxml).
+4. Open the monitor.xml file and edit the project path to the NagiosMonitor/scripts directory that was just created.
+5. Open the conf/scripts.xml file and add the appropriate scripts such as those in [the scripts.xml example](https://github.com/Appdynamics/nagios-monitoring-extension/blob/master/README.md#scriptsxml).
 6. Restart the Machine Agent.
 7. In the AppDynamics Metric Browser, look for: Application Infrastructure Performance  | \<Tier\> | Custom Metrics | Monitoring | Nagios | Status | \<script name\>
 
@@ -68,6 +68,8 @@ The Nagios scripts should return the following codes:
 | Param | Description |
 | ----- | ----- |
 | project\_path | Location of the Nagios script root directory |
+| worker\_count | Number of worker thread(s) that will be spawned as part of the Executor Pool to execute the scripts |
+| max\_wait\_time | Time (in minutes) after which the pool will shutdown forcefully, this should be much more than the time taken by scripts |
 
 ~~~~
 <monitor>
@@ -87,6 +89,8 @@ The Nagios scripts should return the following codes:
                 </java-task>
                 <task-arguments>
                         <argument name="project_path" is-required="true" default-value="/path/to/nagios/project"/>
+                        <argument name="worker_count" is-required="false" default-value="5"/>
+                        <argument name="max_wait_time" is-required="false" default-value="5"/>
                 </task-arguments>
         </monitor-run-task>
 </monitor>
