@@ -6,7 +6,7 @@ Nagios is an open source computer system, network, and infrastructure monitoring
 
 The Nagios monitoring extension executes various Nagios scripts at user configurable intervals and display their results in the AppDynamics Metric Browser.
 
-This extension works only with the Java agent.
+This extension works only with the standalone machine agent.
 
 ##Installation
 1. Run 'ant package' from the pingdom-monitoring-extension directory
