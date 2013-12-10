@@ -69,7 +69,6 @@ The Nagios scripts should return the following codes:
 | ----- | ----- |
 | project\_path | Location of the Nagios script root directory |
 | worker\_count | Number of worker thread(s) that will be spawned as part of the Executor Pool to execute the scripts |
-| max\_wait\_time | Time (in minutes) after which the pool will shutdown forcefully, this should be much more than the time taken by scripts |
 
 ~~~~
 <monitor>
@@ -90,7 +89,6 @@ The Nagios scripts should return the following codes:
                 <task-arguments>
                         <argument name="project_path" is-required="true" default-value="/path/to/nagios/project"/>
                         <argument name="worker_count" is-required="false" default-value="5"/>
-                        <argument name="max_wait_time" is-required="false" default-value="5"/>
                 </task-arguments>
         </monitor-run-task>
 </monitor>
@@ -103,6 +101,7 @@ The Nagios scripts should return the following codes:
 | \<name\> | Name of the metric being returned by the shell |
 | \<path\>  | Path to the shell file |
 | \<period\>  | (seconds) - Delay between consecutive  calls. Collect the metric every certain period |
+| \<max-wait-time\>  | (seconds) - Wait time before force killing this script. If not specified, assumes 5 seconds. |
 | \<task-arguments\> | Arguments that will be passed to the script |
 
 
@@ -112,12 +111,14 @@ The Nagios scripts should return the following codes:
 	    <name>MySQL Health Check</name>
 	    <path>~/scripts/mysql.sh</path>
 	    <period>5</period>
+	    <max-wait-time>5</max-wait-time>
 	    <task-arguments>-w 1 -c 2</task-arguments>
 	</script>
 	<script>
 	    <name>Oracle DB Health Check</name>
 	    <path>~/scripts/oracle.sh</path>
 	    <period>5</period>
+	    <max-wait-time>5</max-wait-time>
 	</script>
 	    .
 	    .
