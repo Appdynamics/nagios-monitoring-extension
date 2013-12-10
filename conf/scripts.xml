@@ -2,10 +2,14 @@
 	<script>
 		<name>Script 1</name>
 		<path>/path/to/script</path>
+        <!--Number of seconds to wait to execute the script periodically -->
 		<period>5</period>
+        <!-- Number of seconds to wait before force killing this script. If not specified, assumes 5 seconds-->
+        <max-wait-time>5</max-wait-time>
 	</script>
 	<script run-all="true">
 		<path>/Users/nnarayanan/repo/sdk/monitors/java/nagios/dist/scripts</path>
 		<period>5</period>
+        <max-wait-time>5</max-wait-time>
 	</script>
 </nagios-monitor>
