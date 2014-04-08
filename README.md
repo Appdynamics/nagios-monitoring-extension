@@ -9,7 +9,7 @@ The Nagios monitoring extension executes various Nagios scripts at user configur
 This extension works only with the standalone machine agent.
 
 ##Installation
-1. Run 'ant package' from the pingdom-monitoring-extension directory
+1. Run 'ant package' from the  nagios-monitoring-extension directory
 2. Download the file NagiosMonitor.zip found in the 'dist' directory into \<machineagent install dir\>/monitors/
 3. Unzip the downloaded file and cd into NagiosMonitor
 4. Open the monitor.xml file and edit the project path to the NagiosMonitor/scripts directory that was just created.
