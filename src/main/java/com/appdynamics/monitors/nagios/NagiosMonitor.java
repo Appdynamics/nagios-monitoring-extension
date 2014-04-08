@@ -235,7 +235,7 @@ public class NagiosMonitor extends AManagedMonitor {
         if (isNotEmpty(strWorkerCount)) {
             try {
                 this.workerCount = Integer.parseInt(strWorkerCount);
-            } catch (IllegalArgumentException e) {
+            } catch (NumberFormatException e) {
                 // Ignore.
             }
         }
