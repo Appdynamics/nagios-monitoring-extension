@@ -63,7 +63,7 @@ public class NagiosMonitor extends AManagedMonitor {
         for (NagiosScript script : scripts) {
             if (!script.isRunAll()) {
                 String exitCode = String.valueOf(script.getExitCode());
-                LOG.error("NAME: " + script.getName() + " VALUE: " + exitCode);
+                LOG.info("NAME: " + script.getName() + " VALUE: " + exitCode);
                 printMetric(
                         script.getName(),
                         exitCode,
